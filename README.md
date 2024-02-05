@@ -1,2 +1,2 @@
-# RTC-IG
-Raytracing image generator, built using WebGPU
+# Noise Map Viwer
+A noise map viwer, built using WebGPU
