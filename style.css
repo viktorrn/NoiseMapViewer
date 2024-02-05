@@ -1,0 +1,23 @@
+*{
+    margin: 0;
+    padding: 0;
+  
+}
+
+html, body {
+    height: 100%; /* Make sure the body takes up the full viewport height */
+    margin: 0; /* Remove default margin */
+    display: flex; /* Use flexbox to center the child elements */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    background: #f0f0f0; /* Optional: just to give some background color */
+}
+
+canvas{
+    /* canvas with a nice border radius */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    position: absolute;
+    
+
+}
