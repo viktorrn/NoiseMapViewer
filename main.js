@@ -1,7 +1,8 @@
 // Get the canvas element and its context
 import * as utils from "./utils.js";
+import * as perlin from "./perlin.js";
 const canvas = document.getElementById("canvas");
-const IMAGE_SIZE = 128;
+const IMAGE_SIZE = 512;
 const WORKGROUP_SIZE = 16;
 
 async function initWebGPU() {
@@ -46,6 +47,10 @@ async function initWebGPU() {
             binding: 3,
             visibility: GPUShaderStage.COMPUTE,
             buffer: {} // Time buffer
+        }, {
+            binding: 4,
+            visibility: GPUShaderStage.COMPUTE,
+            buffer: { type: "read-only-storage" } // Map buffer
         }]
     });
 
@@ -153,6 +158,21 @@ async function initWebGPU() {
 
     device.queue.writeBuffer( timeBuffer, 0, timeArray);
 
+    const mapData = new Float32Array(IMAGE_SIZE * IMAGE_SIZE * 3);
+    const mapBuffer = device.createBuffer({
+        label: "Map",
+        size: mapData.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+
+    const map = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 0.04);
+    for (let i = 0; i < map.length; i++) {
+        mapData[3*i] = map[i];
+ 
+    }
+
+    device.queue.writeBuffer( mapBuffer, 0, mapData);
+
       /* Create Bindgroups */
     const bindGroup = [
         device.createBindGroup({
@@ -170,6 +190,9 @@ async function initWebGPU() {
             }, {
                 binding: 3,
                 resource: {buffer: timeBuffer},
+            }, {
+                binding: 4,
+                resource: {buffer: mapBuffer},
             }]
         }),
         device.createBindGroup({
@@ -187,6 +210,9 @@ async function initWebGPU() {
             }, {
                 binding: 3,
                 resource: {buffer: timeBuffer},
+            }, {
+                binding: 4,
+                resource: {buffer: mapBuffer},
             }]
         })
     ];
