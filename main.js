@@ -37,18 +37,14 @@ async function initWebGPU() {
             buffer: {} // Grid uniform buffer
         }, {
             binding: 1,
-            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-            buffer: { type: "read-only-storage" } // Cell state input buffer
-            }, {
-            binding: 2,
-            visibility: GPUShaderStage.COMPUTE,
+            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE ,
             buffer: { type: "storage" } // Cell state output buffer
         }, {
-            binding: 3,
+            binding: 2,
             visibility: GPUShaderStage.COMPUTE,
             buffer: {} // Time buffer
         }, {
-            binding: 4,
+            binding: 3,
             visibility: GPUShaderStage.COMPUTE,
             buffer: { type: "read-only-storage" } // Map buffer
         }]
@@ -129,24 +125,18 @@ async function initWebGPU() {
  
      /* Pixel Data */
      const pixelStateData = new Float32Array(IMAGE_SIZE * IMAGE_SIZE * 3);
-     const pixelStateStorage = [
-         device.createBuffer({
-             label: "Pixel State A",
-             size: pixelStateData.byteLength,
-             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-         }),
-         device.createBuffer({
-             label: "Pixel State B",
-             size: pixelStateData.byteLength,
-             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-         })
-     ];
+     const pixelStateStorage = device.createBuffer({
+        label: "Pixel State A",
+        size: pixelStateData.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+     });
+         
  
      for (let i = 0; i < pixelStateData.length; ++i) {
          pixelStateData[i] = Math.random();
      }
  
-    device.queue.writeBuffer( pixelStateStorage[0],  0, pixelStateData);
+    device.queue.writeBuffer( pixelStateStorage,  0, pixelStateData);
 
     // uniform time buffer 
     const timeArray = new Float32Array([0.0]);
@@ -174,48 +164,23 @@ async function initWebGPU() {
     device.queue.writeBuffer( mapBuffer, 0, mapData);
 
       /* Create Bindgroups */
-    const bindGroup = [
-        device.createBindGroup({
-            lable: "Bind group A",
-            layout: bindGroupLayout,
-            entries: [{
-                binding: 0,
-                resource: {buffer: uniformBuffer},
-            },  {
-                binding: 1,
-                resource: {buffer: pixelStateStorage[0]},
-            }, {
-                binding: 2,
-                resource: {buffer: pixelStateStorage[1]},
-            }, {
-                binding: 3,
-                resource: {buffer: timeBuffer},
-            }, {
-                binding: 4,
-                resource: {buffer: mapBuffer},
-            }]
-        }),
-        device.createBindGroup({
-            lable: "Bind group B",
-            layout: bindGroupLayout,
-            entries: [{
-                binding: 0,
-                resource: {buffer: uniformBuffer},
-            }, {
-                binding: 1,
-                resource: {buffer: pixelStateStorage[1]},
-            }, {
-                binding: 2,
-                resource: {buffer: pixelStateStorage[0]},
-            }, {
-                binding: 3,
-                resource: {buffer: timeBuffer},
-            }, {
-                binding: 4,
-                resource: {buffer: mapBuffer},
-            }]
-        })
-    ];
+    const bindGroup = device.createBindGroup({
+        lable: "Bind group",
+        layout: bindGroupLayout,
+        entries: [{
+            binding: 0,
+            resource: {buffer: uniformBuffer},
+        }, {
+            binding: 1,
+            resource: {buffer: pixelStateStorage},
+        }, {
+            binding: 2,
+            resource: {buffer: timeBuffer},
+        }, {
+            binding: 3,
+            resource: {buffer: mapBuffer},
+        }]
+    });
 
     
     var iteration = 0;
@@ -230,7 +195,7 @@ async function initWebGPU() {
         const computePass = encoder.beginComputePass();
 
         computePass.setPipeline(caluclationPipeline);
-        computePass.setBindGroup(0, bindGroup[iteration % 2]);
+        computePass.setBindGroup(0, bindGroup);
 
         const workgroupCount = Math.ceil(IMAGE_SIZE / WORKGROUP_SIZE);
         computePass.dispatchWorkgroups(workgroupCount, workgroupCount);
@@ -249,7 +214,7 @@ async function initWebGPU() {
         // Begin the render pass
         pass.setPipeline(imagePipeline);
         pass.setVertexBuffer(0, vertexBuffer);
-        pass.setBindGroup(0, bindGroup[iteration % 2]);
+        pass.setBindGroup(0, bindGroup);
         pass.draw(vertices.length / 2); // Draw 3 vertices (1 triangle)
         pass.end();
 

@@ -4,7 +4,7 @@ struct VertexOutput {
 };
 
 @group(0) @binding(0) var<uniform> grid: vec2f;
-@group(0) @binding(1) var<storage> pixelState: array<f32>;
+@group(0) @binding(1) var<storage, read_write> pixelState: array<f32>;
 
 @vertex
 fn vertexMain(@location(0) position: vec2f) -> VertexOutput {
