@@ -4,6 +4,7 @@ import * as perlin from "./perlin.js";
 const canvas = document.getElementById("canvas");
 const IMAGE_SIZE = 512;
 const WORKGROUP_SIZE = 16;
+const CENTER = [IMAGE_SIZE/2, IMAGE_SIZE/2];
 
 async function initWebGPU() {
     
@@ -41,11 +42,11 @@ async function initWebGPU() {
             buffer: { type: "storage" } // Cell state output buffer
         }, {
             binding: 2,
-            visibility: GPUShaderStage.COMPUTE,
+            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
             buffer: {} // Time buffer
         }, {
             binding: 3,
-            visibility: GPUShaderStage.COMPUTE,
+            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
             buffer: { type: "read-only-storage" } // Map buffer
         }]
     });
@@ -148,7 +149,7 @@ async function initWebGPU() {
 
     device.queue.writeBuffer( timeBuffer, 0, timeArray);
 
-    const mapData = new Float32Array(IMAGE_SIZE * IMAGE_SIZE * 3);
+    let mapData = new Float32Array(IMAGE_SIZE * IMAGE_SIZE);
     const mapBuffer = device.createBuffer({
         label: "Map",
         size: mapData.byteLength,
@@ -156,9 +157,9 @@ async function initWebGPU() {
     });
 
     const map = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 0.04);
-    for (let i = 0; i < map.length; i++) {
-        mapData[3*i] = map[i];
- 
+     
+    for (let i = 0; i < map.length; ++i) {
+        mapData[i] = map[i];
     }
 
     device.queue.writeBuffer( mapBuffer, 0, mapData);
