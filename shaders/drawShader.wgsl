@@ -49,6 +49,13 @@ fn indexMap(x: u32, y: u32) -> u32 {
     return  x + y * u32(grid.x);
 }
 
+fn calculateSteepness(x: u32, y: u32) -> f32 {
+    let h = pixelState[indexMap(x, y)];
+    let dx = pixelState[indexMap(x + 1, y)] - h;
+    let dy = pixelState[indexMap(x, y + 1)] - h;
+    return sqrt(dx * dx + dy * dy);
+}
+
 fn stepToLight(pos: vec3f, light: vec3f) -> f32 {
     
     // Step to light

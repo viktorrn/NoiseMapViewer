@@ -165,10 +165,13 @@ async function initWebGPU() {
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
 
-    const map = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.04);
-     
-    for (let i = 0; i < map.length; ++i) {
-        mapData[i] = map[i];
+
+    const map1 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.04);
+
+    const map3 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.00002);
+    
+    for (let i = 0; i < map1.length; ++i) {
+        mapData[i] = (map1[i]  + map3[i]);
     }
 
     device.queue.writeBuffer( mapBuffer, 0, mapData);
