@@ -57,12 +57,12 @@ class Perlin {
 }
 
 // Function to generate 2D Perlin noise and return it as a 1D array
-function generatePerlinNoise(width, height, scale = 1.0) {
+function generatePerlinNoise(width, height, offsetX, offsetY, scale = 1.0) {
     const perlin = new Perlin();
     const noiseArray = [];
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            const value = perlin.noise(x * scale, y * scale, 0);
+            const value = perlin.noise((offsetX+x) * scale, (offsetY+y) * scale, 0);
             noiseArray.push(value);
         }
     }

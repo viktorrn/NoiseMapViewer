@@ -2,7 +2,7 @@
 import * as utils from "./utils.js";
 import * as perlin from "./perlin.js";
 const canvas = document.getElementById("canvas");
-const IMAGE_SIZE = 512;
+const IMAGE_SIZE = 1024;
 const WORKGROUP_SIZE = 16;
 const CENTER = [IMAGE_SIZE/2, IMAGE_SIZE/2];
 
@@ -48,7 +48,16 @@ async function initWebGPU() {
             binding: 3,
             visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
             buffer: { type: "read-only-storage" } // Map buffer
-        }]
+        }, {
+            binding: 4,
+            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+            buffer: {} // Ocean buffer
+        }, {
+            binding: 5,
+            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+            buffer: {} // Light buffer
+        }
+    ]
     });
 
     /* Set Up Pipeline */
@@ -125,7 +134,7 @@ async function initWebGPU() {
      device.queue.writeBuffer( uniformBuffer, 0, uniformArray );
  
      /* Pixel Data */
-     const pixelStateData = new Float32Array(IMAGE_SIZE * IMAGE_SIZE * 3);
+     const pixelStateData = new Float32Array(IMAGE_SIZE * IMAGE_SIZE);
      const pixelStateStorage = device.createBuffer({
         label: "Pixel State A",
         size: pixelStateData.byteLength,
@@ -134,7 +143,7 @@ async function initWebGPU() {
          
  
      for (let i = 0; i < pixelStateData.length; ++i) {
-         pixelStateData[i] = Math.random();
+        pixelStateData[i] = 0;
      }
  
     device.queue.writeBuffer( pixelStateStorage,  0, pixelStateData);
@@ -156,7 +165,7 @@ async function initWebGPU() {
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
 
-    const map = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 0.04);
+    const map = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.04);
      
     for (let i = 0; i < map.length; ++i) {
         mapData[i] = map[i];
@@ -164,6 +173,23 @@ async function initWebGPU() {
 
     device.queue.writeBuffer( mapBuffer, 0, mapData);
 
+    let oceanData = new Float32Array([0.0005]);
+    const oceanBuffer = device.createBuffer({
+        label: "Ocean",
+        size: oceanData.byteLength,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    device.queue.writeBuffer( oceanBuffer, 0, oceanData);
+
+    let lightData = new Float32Array([0.0, 0.0, 0.0]);
+    const lightBuffer = device.createBuffer({
+        label: "Light",
+        size: lightData.byteLength,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+   
       /* Create Bindgroups */
     const bindGroup = device.createBindGroup({
         lable: "Bind group",
@@ -180,7 +206,14 @@ async function initWebGPU() {
         }, {
             binding: 3,
             resource: {buffer: mapBuffer},
-        }]
+        },{
+            binding: 4,
+            resource: {buffer: oceanBuffer},
+        }, {
+            binding: 5,
+            resource: {buffer: lightBuffer},
+        }
+    ]
     });
 
     
@@ -190,6 +223,15 @@ async function initWebGPU() {
         
         timeArray[0] += 0.1;
         device.queue.writeBuffer( timeBuffer, 0, timeArray);
+
+        // let mouse = GetMousePosition();
+        let rad = 250;
+        lightData[0] = 512 + rad * Math.cos(iteration * 0.01);
+        lightData[1] = 512 + rad * Math.sin(iteration * 0.01);
+        lightData[2] = 6;
+        
+        device.queue.writeBuffer( lightBuffer, 0, lightData);
+
         // Create the command encoder
         const encoder = device.createCommandEncoder();
        
@@ -226,6 +268,11 @@ async function initWebGPU() {
     }
     window.requestAnimationFrame(updateImage);
     
+}
+
+function GetMousePosition(event) {
+    var rect = canvas.getBoundingClientRect();
+    return [event.clientX - rect.left, event.clientY - rect.top];
 }
 
 // Initialize WebGPU

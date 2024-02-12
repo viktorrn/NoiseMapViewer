@@ -2,9 +2,10 @@
 @group(0) @binding(1) var<storage, read_write> pixelStateOut: array<f32>;
 @group(0) @binding(2) var<uniform> time: f32;
 @group(0) @binding(3) var<storage> mapValues: array<f32>;
+@group(0) @binding(4) var<uniform> oceanLevel: f32;
+
 
 const PI = 3.14159265359;
-const OCEAN_LEVEL = 0.005;
 
 @compute
 @workgroup_size(16, 16)
@@ -13,11 +14,10 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
     let pixelIndex = pixel.x + pixel.y * u32(grid.x);
     
     let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
-    let height = clamp( mapValues[pixelIndex] * gaussian_2D(pixel, center, 40.0, 1.2, vec2f(1,1))  + gaussian_2D(pixel, center, 25.0, 1.5, vec2f(1,1)) , OCEAN_LEVEL, 8.0);
-    
-    pixelStateOut[3 * pixelIndex + 0] = height; //sin(0.01*time + f32(pixelIndex)/(grid.x*grid.y));
-    pixelStateOut[3 * pixelIndex + 1] = height; //cos(sin(0.01*time + 2*f32(pixelIndex)/(grid.x*grid.y)));
-    pixelStateOut[3 * pixelIndex + 2] = height; //cos(0.01*time + 1000*rand(pixelIndex)/(grid.x*grid.y));   
+    var floatHeight = mapValues[pixelIndex];
+    var height = clamp(floatHeight * gaussian_2D(pixel, center, 60.0, 1.2, vec2f(1,1)) + gaussian_2D(pixel, center, 20.0, 1.2, vec2f(1.2,0.5)), oceanLevel, 10);
+   
+    pixelStateOut[pixelIndex] = height; //sin(0.01*time + f32(pixelIndex)/(grid.x*grid.y));
 }
 
 fn rand(local_seed: u32) -> f32 {
