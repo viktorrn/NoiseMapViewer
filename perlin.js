@@ -55,7 +55,7 @@ class Perlin {
               ba = p[b] + floorZ,
               bb = p[b + 1] + floorZ;
 
-        return this.lerp(w, this.lerp(v, this.lerp(u, this.grad(p[aa], x, y, z),
+        return 0.5+0.5*this.lerp(w, this.lerp(v, this.lerp(u, this.grad(p[aa], x, y, z),
                                                         this.grad(p[ba], x - 1, y, z)),
                                         this.lerp(u, this.grad(p[ab], x, y - 1, z),
                                                       this.grad(p[bb], x - 1, y - 1, z))),

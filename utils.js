@@ -32,8 +32,7 @@ function NormalizeArray(array) {
     }
   }
   console.log(min);
-  let range = max - min;
-  return array.map((x) => (x-min)/range);
+
 }
 
 

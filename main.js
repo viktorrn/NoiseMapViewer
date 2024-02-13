@@ -172,14 +172,14 @@ async function initWebGPU() {
     const map4 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.0004);
     
     for (let i = 0; i < map2.length; ++i) {
-        mapData[i] = (map2[i] + map3[i] + map4[i]);
+        mapData[i] = (map2[i] + map3[i] + map4[i])/3;
     }
     
-    mapData = utils.NormalizeArray(mapData);
+    utils.NormalizeArray(mapData);
 
     device.queue.writeBuffer( mapBuffer, 0, mapData);
 
-    let oceanData = new Float32Array([0.0005]);
+    let oceanData = new Float32Array([0.005]);
     const oceanBuffer = device.createBuffer({
         label: "Ocean",
         size: oceanData.byteLength,

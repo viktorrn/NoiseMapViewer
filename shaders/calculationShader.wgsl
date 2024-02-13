@@ -39,8 +39,8 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
     var floatHeight = mapValues[pixelIndex];
     let dx = f32(pixel.x) - center.x;
     let dy = f32(pixel.y) - center.y;
-    var height = 0.5+ floatHeight * gaussian_2D(pixel, center, 100.0, 1, vec2f(1,1));
-    height = pow(height, 2) * 100/distance(center.xy,vec2f(f32(pixel.x), f32(pixel.y)));
+    var height = floatHeight * gaussian_2D(pixel, center, 100.0, 1, vec2f(1,1));
+    height = pow(height, 3);
     pixelStateOut[pixelIndex] = clamp(height, oceanLevel, 10); //sin(0.01*time + f32(pixelIndex)/(grid.x*grid.y));
 }
 
