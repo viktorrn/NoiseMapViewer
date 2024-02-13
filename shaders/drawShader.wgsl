@@ -36,7 +36,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     var green = value.y * shadow ;
     var blue = value.z * shadow;
 
-    if(distance(pixelPos.xy, lightPosition.xy) < 10) {
+    if(distance(pixelPos.xy, lightPosition.xy) < 20) {
         red = 255.0;
         green = 255.0;
         blue = 255.0;
@@ -68,7 +68,7 @@ fn stepToLight(pos: vec3f, light: vec3f) -> f32 {
     for (var t = 0.0; t < 1; ) {
         p = start + dir * t;
         
-        if(pixelState[indexMap(u32(p.x), u32(p.y))] > 3.0)
+        if(pixelState[indexMap(u32(p.x), u32(p.y))] > 8.0)
         {
             return 1.0;
         }

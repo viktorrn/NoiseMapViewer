@@ -166,13 +166,16 @@ async function initWebGPU() {
     });
 
 
-    const map1 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.04);
 
-    const map3 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.00002);
+    const map2 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.04);
+    const map3 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.004);
+    const map4 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.0004);
     
-    for (let i = 0; i < map1.length; ++i) {
-        mapData[i] = (map1[i]  + map3[i]);
+    for (let i = 0; i < map2.length; ++i) {
+        mapData[i] = (map2[i] + map3[i] + map4[i]);
     }
+    
+    mapData = utils.NormalizeArray(mapData);
 
     device.queue.writeBuffer( mapBuffer, 0, mapData);
 

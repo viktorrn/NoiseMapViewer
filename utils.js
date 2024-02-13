@@ -18,15 +18,14 @@ function Gaussian2D(pos, sigma, mean, amplitude, scew) {
 }
 
 function NormalizeArray(array) {
-  console.log(array);
-  let max = -Math.infinity;
+  let max = 0;
   for(let i = 0; i < array.length; i++) {
     if(array[i] > max) {
       max = array[i];
     }
   }
   console.log(max);
-  let min = Math.infinity;
+  let min = 0;
   for(let i = 0; i < array.length; i++) {
     if(array[i] < min) {
       min = array[i];
@@ -36,5 +35,7 @@ function NormalizeArray(array) {
   let range = max - min;
   return array.map((x) => (x-min)/range);
 }
+
+
 
 export {loadShaderModuleFromFile, Gaussian2D, NormalizeArray };
