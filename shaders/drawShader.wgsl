@@ -50,10 +50,20 @@ fn indexMap(x: u32, y: u32) -> u32 {
 }
 
 fn calculateSteepness(x: u32, y: u32) -> f32 {
-    let h = pixelState[indexMap(x, y)];
-    let dx = pixelState[indexMap(x + 1, y)] - h;
-    let dy = pixelState[indexMap(x, y + 1)] - h;
-    return sqrt(dx * dx + dy * dy);
+    
+    let h = f32(pixelState[indexMap(x, y)]);
+    let p0 = f32(pixelState[indexMap(x+1, y)]);
+    let p1 = f32(pixelState[indexMap(x, y+1)]);
+    let p2 = f32(pixelState[indexMap(x-1, y)]);
+    let p3 = f32(pixelState[indexMap(x, y-1)]);
+
+    let dx1 = h-p0;
+    let dx2 = h-p2;
+    let dy1 = h-p1;
+    let dy2 = h-p3;
+    let steepness = (dx1+dx2+dy1+dy2)/4;
+    
+    return steepness;
 }
 
 fn stepToLight(pos: vec3f, light: vec3f) -> f32 {
@@ -92,15 +102,15 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
         return vec3<f32>(1.0, 1.0, 1.0);
     }
 
-    if(height > 0.7) {
+    if(height > 0.3 && calculateSteepness(pixel.x, pixel.y) > 0.001) {
         return vec3<f32>(0.8, 0.8, 0.8);
     }
 
-    if(height > 0.05) {
+    if(height > 0.03) {
         return rbg2ZeroOne(21,114,65);
     }
 
-    if(height > 0.005) {
+    if(height > 0.01) {
         return rbg2ZeroOne(117,184,85);
     }
 
@@ -108,10 +118,13 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
         return vec3<f32>(0.8863, 0.7922, 0.42);
     }
 
+    let diff = abs(height - oceanLevel);
+  
+
     let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
     let scale = gaussian_2D(pixel, center, 320.0, 1.0, vec2f(1.0, 1.0));
 
-    return rbg2ZeroOne(35,137,218) * clamp(scale, 0.0, 1.0);
+    return rbg2ZeroOne(35,137,218) * clamp(scale, 0.0, 1.0) + rbg2ZeroOne(255,255,255)*exp(-pow(diff-1.2,2)); //rbg2ZeroOne(21,114,65) * exp(-1.0*pow(diff-1.2,2));
 }
 
 fn gaussian_2D(input: vec2u, center: vec3<f32>, stddev: f32, amplitude: f32, scew: vec2f) -> f32 {

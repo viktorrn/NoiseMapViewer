@@ -10,7 +10,7 @@ html, body {
     display: flex; /* Use flexbox to center the child elements */
     justify-content: center; /* Center horizontally */
     align-items: center; /* Center vertically */
-    background: #f0f0f0; /* Optional: just to give some background color */
+    background: #544a5e; /* Optional: just to give some background color */
 }
 
 canvas{

@@ -32,7 +32,11 @@ function NormalizeArray(array) {
     }
   }
   console.log(min);
-
+  let range = max - min;
+  for(let i = 0; i < array.length; i++) {
+    array[i] = (array[i] - min) / range;
+  }
+  //return array;
 }
 
 
