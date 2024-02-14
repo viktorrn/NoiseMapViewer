@@ -52,6 +52,10 @@ fn indexMap(x: u32, y: u32) -> u32 {
     return  x + y * u32(grid.x);
 }
 
+fn lerp(a: vec3<f32>, b: vec3<f32>, t: f32) -> vec3<f32> {
+    return a * (1.0 - t) + b * t;
+}
+
 fn calculateSteepness(x: u32, y: u32) -> f32 {
     
     let h = f32(pixelState[indexMap(x, y)]);
@@ -101,15 +105,16 @@ fn rbg2ZeroOne(r: u32, g: u32, b: u32) -> vec3<f32> {
 
 fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
     // Gradient color
-    if(height > 2) {
-        return vec3<f32>(height/10,height/10,height/10);
+    if(height > 0.7) {
+        let c = clamp(height,0.8,0.95);
+        return vec3<f32>(c,c,c);
     }
     
-    if(height > 1) {
+    if(height > 0.4) {
         return vec3<f32>(0.8, 0.8, 0.8);
     }
 
-    if(height > 0.3 && calculateSteepness(pixel.x, pixel.y) > 0.01) {
+    if(height > 0.1 && calculateSteepness(pixel.x, pixel.y) > 0.00005) {
         return vec3<f32>(0.8, 0.8, 0.8);
     }
 
@@ -125,13 +130,23 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
         return vec3<f32>(0.8863, 0.7922, 0.42);
     }
 
-    let diff = abs(height - oceanLevel);
+    //let noise1 = perlin(pixel, vec2f(16.0,16.0));
+    //let noise2 = perlin(pixel, vec2f(32.0,32.0));
+    //let noise3 = perlin(pixel, vec2f(4.0,4.0));
+
+    //let inHeight = (noise1 + noise2 + 0.5*noise3)/3;
+
+    let diff = f32(clamp(oceanLevel-height, 0.0, 1.0));
   
 
     let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
-    let scale = gaussian_2D(pixel, center, 320.0, 1.0, vec2f(1.0, 1.0));
+    let scale = gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
 
-    return rbg2ZeroOne(35,137,218) * clamp(scale, 0.0, 1.0) + rbg2ZeroOne(255,255,255)*exp(-pow(diff-1.2,2)); //rbg2ZeroOne(21,114,65) * exp(-1.0*pow(diff-1.2,2));
+
+    let c = mix(vec3<f32>(0.8863, 0.7922, 0.42), rbg2ZeroOne(35,137,218), 255*diff);
+
+
+    return c * clamp(scale, 0.0, 1.0);
 }
 
 fn gaussian_2D(input: vec2u, center: vec3<f32>, stddev: f32, amplitude: f32, scew: vec2f) -> f32 {
@@ -140,4 +155,71 @@ fn gaussian_2D(input: vec2u, center: vec3<f32>, stddev: f32, amplitude: f32, sce
     let y = f32(input.y) - center.y;
     let d = (scew.x * x * x + scew.y * y * y) / (2.0 * stddev * stddev);
     return amplitude*exp(-d); // ( stddev* sqrt(2.0*PI));
+}
+
+fn quintic(p: vec2f ) -> vec2f{
+    return p * p * p * (p * (p * 6.0 - 15.0) + 10.0);
+}
+
+fn cubic(p: vec2f ) -> vec2f{
+    return p * p * (3.0 - 2.0 * p);
+}
+
+fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
+    let changeWithTime = true;
+    var p = (pos + vec2f(0.1,0.1))*scale;
+    let x = dot(p,vec2f(123.4, 234.5));
+    let y = dot(p,vec2f(234.5, 345.6));
+    var gradient = vec2f(x,y);
+    gradient = sin(gradient);
+    gradient = gradient * 43758.5453;
+
+    if(changeWithTime){
+        return sin(gradient + time*0.1);
+    }
+    return sin(gradient);
+}
+
+fn perlin(pos: vec2u, scale: vec2f ) -> f32{
+    // Get corners
+    
+    var uv = vec2f(f32(pos.x), f32(pos.y)) / grid.x;
+    uv = uv * scale;
+    let gridId = floor(uv);
+    let gridUv = fract(uv);
+
+    let bl = gridId + vec2f(0.0, 0.0);
+    let br = gridId + vec2f(1.0, 0.0);
+    let tl = gridId + vec2f(0.0, 1.0);
+    let tr = gridId + vec2f(1.0, 1.0);
+
+    // Get gradients for each corner
+    let gradBl = randomGradiant(bl, scale);
+    let gradBr = randomGradiant(br, scale);
+    let gradTl = randomGradiant(tl, scale);
+    let gradTr = randomGradiant(tr, scale);
+
+    // Distance from current pixel to each corner
+    let distBl = gridUv - vec2f(0.0, 0.0);
+    let distBr = gridUv - vec2f(1.0, 0.0);
+    let distTl = gridUv - vec2f(0.0, 1.0);
+    let distTr = gridUv - vec2f(1.0, 1.0);
+
+    // Dot product of distance and gradient
+    let dotBl = dot(distBl, gradBl);
+    let dotBr = dot(distBr, gradBr);
+    let dotTl = dot(distTl, gradTl);
+    let dotTr = dot(distTr, gradTr);
+
+    let step = quintic(gridUv);
+
+    // Interpolate between the gradients
+    let b = mix(dotBl, dotBr, step.x);
+    let t = mix(dotTl, dotTr, step.x);
+    let p = mix(b, t, step.y);
+
+    // 
+
+    
+    return 0.3+p*0.7;
 }

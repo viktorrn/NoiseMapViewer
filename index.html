@@ -7,8 +7,18 @@
     <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
-    <input style="position: absolute; top:10px;" id="ocean-level" type="range" min="0" max="1" step="0.001"/> 
-    <canvas id="canvas" width="724" height="724"></canvas>
+    <div class="grid">
+        <div>
+            <p id="fps"></p>
+            <label for="ocean-level">Ocean Level</label>
+            <input class="" id="ocean-level" type="range" min="0" max="1" step="0.001"/> 
+            <label for="ocean-level">Ocean Level</label>
+            <input class="" id="ocean-level" type="range" min="0" max="1" step="0.001"/> 
+        </div>
+
+        <canvas id="canvas" width="1024" height="1024"></canvas>
+    </div>
+    
     <script src="main.js" type="module"></script>
 </body>
 </html>

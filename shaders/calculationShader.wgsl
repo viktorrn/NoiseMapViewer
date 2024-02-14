@@ -44,17 +44,19 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
         inHeight = mapValues[pixelIndex];
     } else {
 
-        let noise1 = 0.5+perlin(pixel, vec2f(16.0,16.0));
-        let noise2 = 0.5+perlin(pixel, vec2f(32.0,32.0));
-        let noise3 = 0.5+perlin(pixel, vec2f(4.0,4.0));
+        let noise1 = perlin(pixel, vec2f(16.0,16.0));
+        let noise2 = perlin(pixel, vec2f(32.0,32.0));
+        let noise3 = perlin(pixel, vec2f(4.0,4.0));
+        let noise4 = perlin(pixel, vec2f(8.0,8.0));
 
-        inHeight = (noise1 + noise2 + noise3)/3;
+        inHeight = (noise1 + noise2 + noise3 + noise4)/4;
     }
   
     
     let dx = f32(pixel.x) - center.x;
     let dy = f32(pixel.y) - center.y;
-    var height = inHeight * gaussian_2D(pixel, center, 220.0, 1.2, vec2f(cos(time*0.1),sin(time*0.05)));
+    let distance  = sqrt(dx*dx + dy*dy);
+    var height = inHeight * gaussian_2D(pixel, center, 160.0, 2, vec2f(1,0.9));;
     height = pow(height, 4);
   
     pixelStateOut[pixelIndex] = height;
@@ -65,7 +67,7 @@ fn gaussian_2D(input: vec3<u32>, center: vec3<f32>, stddev: f32, amplitude: f32,
     let x = f32(input.x) - center.x;
     let y = f32(input.y) - center.y;
     let d = (scew.x * x * x + scew.y * y * y) / (2.0 * stddev * stddev);
-    return amplitude*exp(-d); // ( stddev* sqrt(2.0*PI));
+    return amplitude*exp(-d);
 }
 
 fn rand(local_seed: u32) -> f32 {
@@ -92,6 +94,7 @@ fn cubic(p: vec2f ) -> vec2f{
 }
 
 fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
+    let changeWithTime = false;
     var p = (pos + vec2f(0.1,0.1))*scale;
     let x = dot(p,vec2f(123.4, 234.5));
     let y = dot(p,vec2f(234.5, 345.6));
@@ -99,8 +102,10 @@ fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
     gradient = sin(gradient);
     gradient = gradient * 43758.5453;
 
-    gradient = sin(gradient + time*0.1);
-    return gradient;
+    if(changeWithTime){
+        return sin(gradient + time*0.1);
+    }
+    return sin(gradient);
 }
 
 fn perlin(pos: vec3u, scale: vec2f ) -> f32{
@@ -134,7 +139,7 @@ fn perlin(pos: vec3u, scale: vec2f ) -> f32{
     let dotTl = dot(distTl, gradTl);
     let dotTr = dot(distTr, gradTr);
 
-    let step = cubic(gridUv);
+    let step = quintic(gridUv);
 
     // Interpolate between the gradients
     let b = mix(dotBl, dotBr, step.x);
@@ -144,5 +149,5 @@ fn perlin(pos: vec3u, scale: vec2f ) -> f32{
     // 
 
     
-    return p;
+    return 0.3+p*0.7;
 }

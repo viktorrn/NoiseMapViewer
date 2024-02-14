@@ -211,37 +211,41 @@ async function initWebGPU() {
     ]
     });
 
+    const encoder = device.createCommandEncoder();  
+    const computePass = encoder.beginComputePass();
+
+    computePass.setPipeline(caluclationPipeline);
+    computePass.setBindGroup(0, bindGroup);
+
+    const workgroupCount = Math.ceil(IMAGE_SIZE / WORKGROUP_SIZE);
+    computePass.dispatchWorkgroups(workgroupCount, workgroupCount);
+
+    computePass.end();
+    device.queue.submit([encoder.finish()]);
+
     
     var iteration = 0;
     function updateImage()
     {
         
+        const encoder = device.createCommandEncoder();
+
         timeArray[0] += 0.1;
         device.queue.writeBuffer( timeBuffer, 0, timeArray);
 
         // let mouse = GetMousePosition();
-        let rad = Math.sin(iteration * 0.05) * 100 + 200;
-        lightData[0] = 512 + rad * Math.cos(iteration * 0.01);
-        lightData[1] = 512 + rad * Math.sin(iteration * 0.01);
-        lightData[2] = 10 + 5 * Math.sin(iteration * 0.01);
+        let rad = 450;
+        lightData[0] = 512 + rad * Math.cos(iteration * 0.0025);
+        lightData[1] = 512 + rad * Math.sin(iteration * 0.0025);
+        lightData[2] = 0.3;
 
-        oceanData[0] = Number(document.getElementById('ocean-level').value);
+        //oceanData[0] = Number(document.getElementById('ocean-level').value);
         device.queue.writeBuffer( oceanBuffer, 0, oceanData);
 
         device.queue.writeBuffer( lightBuffer, 0, lightData);
 
         // Create the command encoder
-        const encoder = device.createCommandEncoder();
-       
-        const computePass = encoder.beginComputePass();
-
-        computePass.setPipeline(caluclationPipeline);
-        computePass.setBindGroup(0, bindGroup);
-
-        const workgroupCount = Math.ceil(IMAGE_SIZE / WORKGROUP_SIZE);
-        computePass.dispatchWorkgroups(workgroupCount, workgroupCount);
-
-        computePass.end();
+        
 
         const pass = encoder.beginRenderPass({
             colorAttachments: [{

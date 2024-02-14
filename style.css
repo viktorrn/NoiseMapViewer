@@ -7,17 +7,33 @@
 html, body {
     height: 100%; /* Make sure the body takes up the full viewport height */
     margin: 0; /* Remove default margin */
-    display: flex; /* Use flexbox to center the child elements */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
     background: #544a5e; /* Optional: just to give some background color */
+}
+
+input{
+    width: 200px;
+    padding: 1rem;
+}
+
+.grid{
+    margin: 2rem;
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: row;
+
+}
+
+.grid > div{
+    margin-right: 1rem;
+    background-color: #332e36;
+    padding: 1rem;
+    border-radius: 2rem;
+    color: white;
 }
 
 canvas{
     /* canvas with a nice border radius */
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    position: absolute;
     
-
 }
