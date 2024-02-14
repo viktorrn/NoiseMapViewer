@@ -177,7 +177,7 @@ async function initWebGPU() {
 
     device.queue.writeBuffer( oceanBuffer, 0, oceanData);
 
-    let lightData = new Float32Array([0.0, 0.0, 0.0]);
+    let lightData = new Float32Array([IMAGE_SIZE/2, IMAGE_SIZE/2, 0.0]);
     const lightBuffer = device.createBuffer({
         label: "Light",
         size: lightData.byteLength,
@@ -211,23 +211,28 @@ async function initWebGPU() {
     ]
     });
 
-    const encoder = device.createCommandEncoder();  
-    const computePass = encoder.beginComputePass();
-
-    computePass.setPipeline(caluclationPipeline);
-    computePass.setBindGroup(0, bindGroup);
-
-    const workgroupCount = Math.ceil(IMAGE_SIZE / WORKGROUP_SIZE);
-    computePass.dispatchWorkgroups(workgroupCount, workgroupCount);
-
-    computePass.end();
-    device.queue.submit([encoder.finish()]);
-
+    function updateNoiseMap()
+    {
+        const encoder = device.createCommandEncoder();  
+        const computePass = encoder.beginComputePass();
     
+        computePass.setPipeline(caluclationPipeline);
+        computePass.setBindGroup(0, bindGroup);
+    
+        const workgroupCount = Math.ceil(IMAGE_SIZE / WORKGROUP_SIZE);
+        computePass.dispatchWorkgroups(workgroupCount, workgroupCount);
+    
+        computePass.end();
+        device.queue.submit([encoder.finish()]);
+    }
+
+    updateNoiseMap();
     var iteration = 0;
     function updateImage()
     {
         
+        //updateNoiseMap();
+
         const encoder = device.createCommandEncoder();
 
         timeArray[0] += 0.1;
@@ -235,8 +240,11 @@ async function initWebGPU() {
 
         // let mouse = GetMousePosition();
         let rad = 450;
-        lightData[0] = 512 + rad * Math.cos(iteration * 0.0025);
-        lightData[1] = 512 + rad * Math.sin(iteration * 0.0025);
+        let dx = 512 + rad * Math.cos(iteration * 0.0025);
+        let dy = 512 + rad * Math.sin(iteration * 0.0025);
+        let dist = utils.distance(lightData,[dx,dy]);
+        lightData[0] = utils.lerp1D(lightData[0],dx,utils.clamp(dist/100,0,1));
+        lightData[1] = utils.lerp1D(lightData[1],dy,utils.clamp(dist/100,0,1));
         lightData[2] = 0.3;
 
         //oceanData[0] = Number(document.getElementById('ocean-level').value);

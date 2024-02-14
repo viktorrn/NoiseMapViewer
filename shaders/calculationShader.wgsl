@@ -94,7 +94,7 @@ fn cubic(p: vec2f ) -> vec2f{
 }
 
 fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
-    let changeWithTime = false;
+    let changeWithTime = true;
     var p = (pos + vec2f(0.1,0.1))*scale;
     let x = dot(p,vec2f(123.4, 234.5));
     let y = dot(p,vec2f(234.5, 345.6));
