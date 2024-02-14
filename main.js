@@ -1,6 +1,5 @@
 // Get the canvas element and its context
 import * as utils from "./utils.js";
-import * as perlin from "./perlin.js";
 const canvas = document.getElementById("canvas");
 const IMAGE_SIZE = 1024;
 const WORKGROUP_SIZE = 16;
@@ -166,16 +165,6 @@ async function initWebGPU() {
     });
 
 
-
-    const map2 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.04);
-    const map3 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.004);
-    const map4 = perlin.generatePerlinNoise(IMAGE_SIZE, IMAGE_SIZE, 10, 10, 0.0004);
-    
-    for (let i = 0; i < map2.length; ++i) {
-        mapData[i] = (map2[i] + map3[i] + map4[i])/3;
-    }
-    
-    utils.NormalizeArray(mapData);
 
     device.queue.writeBuffer( mapBuffer, 0, mapData);
 

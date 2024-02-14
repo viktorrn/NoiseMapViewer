@@ -24,7 +24,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     // Get the pixel index
     let pixel = vec2u(input.textureCoord * grid);
     let i = pixel.x + pixel.y * u32(grid.x);
-
+    let show_grad = false;
     let height = pixelState[i];
 
     let pixelPos = vec3f(f32(pixel.x), f32(pixel.y), f32(height));
@@ -41,7 +41,10 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
         green = 255.0;
         blue = 255.0;
     }
-
+    if(show_grad)
+    {
+        return vec4f(height, height, height, 1.0);  
+    }
     return vec4f(red, green, blue, 1.0);
 }
 
@@ -74,7 +77,7 @@ fn stepToLight(pos: vec3f, light: vec3f) -> f32 {
         }
 
         if ( p.z < pixelState[indexMap(u32(p.x), u32(p.y))]) {
-            return 0.2;
+            return 0.5;
         } 
         t += stepSize;
     }
@@ -96,11 +99,11 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
         return vec3<f32>(0.8, 0.8, 0.8);
     }
 
-    if(height > 0.05) {
+    if(height > 0.1) {
         return rbg2ZeroOne(21,114,65);
     }
 
-    if(height > 0.005) {
+    if(height > 0.01) {
         return rbg2ZeroOne(117,184,85);
     }
 

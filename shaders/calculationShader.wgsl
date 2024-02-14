@@ -24,7 +24,7 @@ const PI = 3.14159265359;
      81,  51, 145, 235, 249,  14, 239, 107,  49, 192, 214,  31, 181, 199, 106, 157,
     184,  84, 204, 176, 115, 121,  50,  45, 127,   4, 150, 254, 138, 236, 205,  93,
     222, 114,  67,  29,  24,  72, 243, 141, 128, 195,  78,  66, 215,  61, 156, 180
-} */
+}*/
     
 
 
@@ -34,14 +34,38 @@ const PI = 3.14159265359;
 fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
     
     let pixelIndex = pixel.x + pixel.y * u32(grid.x);
-    
     let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
-    var floatHeight = mapValues[pixelIndex];
+
+    let externalNoiseMap = false;
+    
+    var inHeight = 0.5;
+    if(externalNoiseMap)
+    {
+        inHeight = mapValues[pixelIndex];
+    } else {
+
+        let noise1 = 0.5+perlin(pixel, vec2f(16.0,16.0));
+        let noise2 = 0.5+perlin(pixel, vec2f(32.0,32.0));
+        let noise3 = 0.5+perlin(pixel, vec2f(4.0,4.0));
+
+        inHeight = (noise1 + noise2 + noise3)/3;
+    }
+  
+    
     let dx = f32(pixel.x) - center.x;
     let dy = f32(pixel.y) - center.y;
-    var height = floatHeight * gaussian_2D(pixel, center, 100.0, 1, vec2f(1,1));
-    height = pow(height, 3);
-    pixelStateOut[pixelIndex] = clamp(height, oceanLevel, 10); //sin(0.01*time + f32(pixelIndex)/(grid.x*grid.y));
+    var height = inHeight * gaussian_2D(pixel, center, 220.0, 1.2, vec2f(cos(time*0.1),sin(time*0.05)));
+    height = pow(height, 4);
+  
+    pixelStateOut[pixelIndex] = height;
+}
+
+fn gaussian_2D(input: vec3<u32>, center: vec3<f32>, stddev: f32, amplitude: f32, scew: vec2f) -> f32 {
+    // 2D Gaussian
+    let x = f32(input.x) - center.x;
+    let y = f32(input.y) - center.y;
+    let d = (scew.x * x * x + scew.y * y * y) / (2.0 * stddev * stddev);
+    return amplitude*exp(-d); // ( stddev* sqrt(2.0*PI));
 }
 
 fn rand(local_seed: u32) -> f32 {
@@ -57,12 +81,68 @@ fn lerp(t: f32, a: f32, b: f32) -> f32 {
     return a + t * (b - a);
 }
 
+/* Implementation based on this guys idea https://www.youtube.com/watch?v=7fd331zsie0*/
 
+fn quintic(p: vec2f ) -> vec2f{
+    return p * p * p * (p * (p * 6.0 - 15.0) + 10.0);
+}
 
-fn gaussian_2D(input: vec3<u32>, center: vec3<f32>, stddev: f32, amplitude: f32, scew: vec2f) -> f32 {
-    // 2D Gaussian
-    let x = f32(input.x) - center.x;
-    let y = f32(input.y) - center.y;
-    let d = (scew.x * x * x + scew.y * y * y) / (2.0 * stddev * stddev);
-    return amplitude*exp(-d); // ( stddev* sqrt(2.0*PI));
+fn cubic(p: vec2f ) -> vec2f{
+    return p * p * (3.0 - 2.0 * p);
+}
+
+fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
+    var p = (pos + vec2f(0.1,0.1))*scale;
+    let x = dot(p,vec2f(123.4, 234.5));
+    let y = dot(p,vec2f(234.5, 345.6));
+    var gradient = vec2f(x,y);
+    gradient = sin(gradient);
+    gradient = gradient * 43758.5453;
+
+    gradient = sin(gradient + time*0.1);
+    return gradient;
+}
+
+fn perlin(pos: vec3u, scale: vec2f ) -> f32{
+    // Get corners
+    
+    var uv = vec2f(f32(pos.x), f32(pos.y)) / grid.x;
+    uv = uv * scale;
+    let gridId = floor(uv);
+    let gridUv = fract(uv);
+
+    let bl = gridId + vec2f(0.0, 0.0);
+    let br = gridId + vec2f(1.0, 0.0);
+    let tl = gridId + vec2f(0.0, 1.0);
+    let tr = gridId + vec2f(1.0, 1.0);
+
+    // Get gradients for each corner
+    let gradBl = randomGradiant(bl, scale);
+    let gradBr = randomGradiant(br, scale);
+    let gradTl = randomGradiant(tl, scale);
+    let gradTr = randomGradiant(tr, scale);
+
+    // Distance from current pixel to each corner
+    let distBl = gridUv - vec2f(0.0, 0.0);
+    let distBr = gridUv - vec2f(1.0, 0.0);
+    let distTl = gridUv - vec2f(0.0, 1.0);
+    let distTr = gridUv - vec2f(1.0, 1.0);
+
+    // Dot product of distance and gradient
+    let dotBl = dot(distBl, gradBl);
+    let dotBr = dot(distBr, gradBr);
+    let dotTl = dot(distTl, gradTl);
+    let dotTr = dot(distTr, gradTr);
+
+    let step = cubic(gridUv);
+
+    // Interpolate between the gradients
+    let b = mix(dotBl, dotBr, step.x);
+    let t = mix(dotTl, dotTr, step.x);
+    let p = mix(b, t, step.y);
+
+    // 
+
+    
+    return p;
 }
