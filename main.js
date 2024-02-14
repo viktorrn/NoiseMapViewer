@@ -220,11 +220,14 @@ async function initWebGPU() {
         device.queue.writeBuffer( timeBuffer, 0, timeArray);
 
         // let mouse = GetMousePosition();
-        let rad = 250;
+        let rad = Math.sin(iteration * 0.05) * 100 + 200;
         lightData[0] = 512 + rad * Math.cos(iteration * 0.01);
         lightData[1] = 512 + rad * Math.sin(iteration * 0.01);
-        lightData[2] = 6;
-        
+        lightData[2] = 10 + 5 * Math.sin(iteration * 0.01);
+
+        oceanData[0] = Number(document.getElementById('ocean-level').value);
+        device.queue.writeBuffer( oceanBuffer, 0, oceanData);
+
         device.queue.writeBuffer( lightBuffer, 0, lightData);
 
         // Create the command encoder
