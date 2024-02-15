@@ -5,10 +5,10 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> grid: vec2f;
 @group(0) @binding(1) var<storage, read_write> pixelState: array<f32>;
-@group(0) @binding(2) var<uniform> time: f32;
+// [0]: Time, [1]: Ocean level, [2]: Light position x [3]: Light position y [4]: Light position z [5]: Change Gradient
+@group(0) @binding(2) var<storage> settings: array<f32>;
 @group(0) @binding(3) var<storage> mapValues: array<f32>;
-@group(0) @binding(4) var<uniform> oceanLevel: f32;
-@group(0) @binding(5) var<uniform> lightPosition: vec3f;
+
 
 @vertex
 fn vertexMain(@location(0) position: vec2f) -> VertexOutput {
@@ -26,6 +26,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     let i = pixel.x + pixel.y * u32(grid.x);
     let show_grad = false;
     let height = pixelState[i];
+    let lightPosition = vec3f(settings[2], settings[3], settings[4]);
 
     let pixelPos = vec3f(f32(pixel.x), f32(pixel.y), f32(height));
     let value = colorGrad(height, pixel);
@@ -104,6 +105,7 @@ fn rbg2ZeroOne(r: u32, g: u32, b: u32) -> vec3<f32> {
 }
 
 fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
+    let oceanLevel = settings[1];
     // Gradient color
     if(height > 0.7) {
         let c = clamp(height,0.8,0.95);
@@ -166,7 +168,7 @@ fn cubic(p: vec2f ) -> vec2f{
 }
 
 fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
-    let changeWithTime = true;
+    let changeWithsettings = true;
     var p = (pos + vec2f(0.1,0.1))*scale;
     let x = dot(p,vec2f(123.4, 234.5));
     let y = dot(p,vec2f(234.5, 345.6));
@@ -174,7 +176,9 @@ fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
     gradient = sin(gradient);
     gradient = gradient * 43758.5453;
 
-    if(changeWithTime){
+    let time = settings[0];
+
+    if(changeWithsettings){
         return sin(gradient + time*0.1);
     }
     return sin(gradient);

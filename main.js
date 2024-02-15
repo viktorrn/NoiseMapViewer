@@ -42,19 +42,11 @@ async function initWebGPU() {
         }, {
             binding: 2,
             visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-            buffer: {} // Time buffer
+            buffer: { type: "read-only-storage" } // Time buffer
         }, {
             binding: 3,
             visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
             buffer: { type: "read-only-storage" } // Map buffer
-        }, {
-            binding: 4,
-            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-            buffer: {} // Ocean buffer
-        }, {
-            binding: 5,
-            visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-            buffer: {} // Light buffer
         }
     ]
     });
@@ -147,15 +139,16 @@ async function initWebGPU() {
  
     device.queue.writeBuffer( pixelStateStorage,  0, pixelStateData);
 
-    // uniform time buffer 
-    const timeArray = new Float32Array([0.0]);
-    const timeBuffer = device.createBuffer({
-        label: "Time",
-        size: timeArray.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    // uniform time buffer
+    // [0]: Time [1]: Ocean level [2]: Light x [3]: Light y [4]: Light z
+    const settingsArray = new Float32Array([0.0, 0.005, 512, 512, 0.3]);
+    const settingsBuffer = device.createBuffer({
+        label: "Settings",
+        size: settingsArray.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
 
-    device.queue.writeBuffer( timeBuffer, 0, timeArray);
+    device.queue.writeBuffer( settingsBuffer, 0, settingsArray);
 
     let mapData = new Float32Array(IMAGE_SIZE * IMAGE_SIZE);
     const mapBuffer = device.createBuffer({
@@ -168,23 +161,7 @@ async function initWebGPU() {
 
     device.queue.writeBuffer( mapBuffer, 0, mapData);
 
-    let oceanData = new Float32Array([0.005]);
-    const oceanBuffer = device.createBuffer({
-        label: "Ocean",
-        size: oceanData.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    device.queue.writeBuffer( oceanBuffer, 0, oceanData);
-
-    let lightData = new Float32Array([IMAGE_SIZE/2, IMAGE_SIZE/2, 0.0]);
-    const lightBuffer = device.createBuffer({
-        label: "Light",
-        size: lightData.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-   
+    
       /* Create Bindgroups */
     const bindGroup = device.createBindGroup({
         lable: "Bind group",
@@ -197,16 +174,10 @@ async function initWebGPU() {
             resource: {buffer: pixelStateStorage},
         }, {
             binding: 2,
-            resource: {buffer: timeBuffer},
+            resource: {buffer: settingsBuffer},
         }, {
             binding: 3,
             resource: {buffer: mapBuffer},
-        },{
-            binding: 4,
-            resource: {buffer: oceanBuffer},
-        }, {
-            binding: 5,
-            resource: {buffer: lightBuffer},
         }
     ]
     });
@@ -228,30 +199,29 @@ async function initWebGPU() {
 
     updateNoiseMap();
     var iteration = 0;
+    var timeStamp = new Date().getTime();
     function updateImage()
     {
+        //caluclate delta time 
+        let currentTime = new Date().getTime();
         
         //updateNoiseMap();
-
+      
         const encoder = device.createCommandEncoder();
 
-        timeArray[0] += 0.1;
-        device.queue.writeBuffer( timeBuffer, 0, timeArray);
-
+        settingsArray[0] += 0.1;
+        
         // let mouse = GetMousePosition();
         let rad = 450;
         let dx = 512 + rad * Math.cos(iteration * 0.0025);
         let dy = 512 + rad * Math.sin(iteration * 0.0025);
-        let dist = utils.distance(lightData,[dx,dy]);
-        lightData[0] = utils.lerp1D(lightData[0],dx,utils.clamp(dist/100,0,1));
-        lightData[1] = utils.lerp1D(lightData[1],dy,utils.clamp(dist/100,0,1));
-        lightData[2] = 0.3;
-
+        let dist = utils.distance([settingsArray[2],settingsArray[3]],[dx,dy]);
+        settingsArray[2] = utils.lerp1D(settingsArray[2],dx,utils.clamp(dist/100,0,1));
+        settingsArray[3] = utils.lerp1D(settingsArray[3],dy,utils.clamp(dist/100,0,1));
+        settingsArray[4] = 0.3;
+        
         //oceanData[0] = Number(document.getElementById('ocean-level').value);
-        device.queue.writeBuffer( oceanBuffer, 0, oceanData);
-
-        device.queue.writeBuffer( lightBuffer, 0, lightData);
-
+        device.queue.writeBuffer( settingsBuffer, 0, settingsArray);
         // Create the command encoder
         
 
@@ -275,6 +245,10 @@ async function initWebGPU() {
         device.queue.submit([encoder.finish()]);
         iteration++;
         window.requestAnimationFrame(updateImage);
+        let deltaTime = currentTime - timeStamp;
+        timeStamp = currentTime;
+        
+        document.getElementById('fps').innerHTML = deltaTime + "ms";
     }
     window.requestAnimationFrame(updateImage);
     
