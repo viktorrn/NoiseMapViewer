@@ -83,21 +83,25 @@ fn stepToLight(pos: vec3f, light: vec3f) -> f32 {
     let start = pos.xyz;
     var h_prev = pixelState[indexMap(u32(p.x), u32(p.y))];
     
+    let normal = calculateNormal(vec2u(u32(pos.x), u32(pos.y)));
+    let lightVector = normalize(pos-light);
+    let dotProduct = 0.5 + 0.5 * dot(lightVector, normal);
+
     for (var t = 0.0; t < 1; ) {
         p = start + dir * t;
         
-        if(pixelState[indexMap(u32(p.x), u32(p.y))] > 8.0)
+        if(pixelState[indexMap(u32(p.x), u32(p.y))] > 10.0)
         {
-            return 1.0;
+            return 1.0 * dotProduct;
         }
 
         if ( p.z < pixelState[indexMap(u32(p.x), u32(p.y))]) {
-            return 0.5;
+            return 0.5 * dotProduct;
         } 
         t += stepSize;
     }
     
-    return 1.0;
+    return 1.0 * dotProduct;
 }
 
 fn rbg2ZeroOne(r: u32, g: u32, b: u32) -> vec3<f32> {
@@ -105,6 +109,7 @@ fn rbg2ZeroOne(r: u32, g: u32, b: u32) -> vec3<f32> {
 }
 
 fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
+
     let oceanLevel = settings[1];
     // Gradient color
     if(height > 0.7) {
@@ -143,12 +148,17 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
 
     let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
     let scale = gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
-
-
     let c = mix(vec3<f32>(0.8863, 0.7922, 0.42), rbg2ZeroOne(35,137,218), 255*diff);
 
 
     return c * clamp(scale, 0.0, 1.0);
+}
+
+fn calculateNormal(pixel: vec2u) -> vec3f {
+    let v1 = vec3f(1,0, 20 * (pixelState[indexMap(pixel.x, pixel.y)] - pixelState[indexMap(pixel.x+1,pixel.y)]));
+    let v2 = vec3f(0,1, 20 * (pixelState[indexMap(pixel.x, pixel.y)] - pixelState[indexMap(pixel.x,pixel.y+1)]) );
+
+    return cross(normalize(v1),normalize(v2));
 }
 
 fn gaussian_2D(input: vec2u, center: vec3<f32>, stddev: f32, amplitude: f32, scew: vec2f) -> f32 {

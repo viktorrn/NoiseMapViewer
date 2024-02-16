@@ -22,21 +22,24 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
     {
         inHeight = mapValues[pixelIndex];
     } else {
-
-        let noise1 = perlin(pixel, vec2f(16.0,16.0));
-        let noise2 = perlin(pixel, vec2f(32.0,32.0));
+        
+        let noise0 = perlin(pixel, vec2f(0.25,0.25));
+        let noise1 = perlin(pixel, vec2f(0.5,0.5));
         let noise3 = perlin(pixel, vec2f(4.0,4.0));
         let noise4 = perlin(pixel, vec2f(8.0,8.0));
+        let noise2 = perlin(pixel, vec2f(16.0,16.0));
 
-        inHeight = (noise1 + noise2 + noise3 + noise4)/4;
+        
+
+        inHeight = 0.5+ 0.2*(noise0 + noise1 + noise2 + noise3 + noise4);
     }
   
     
     let dx = f32(pixel.x) - center.x;
     let dy = f32(pixel.y) - center.y;
     let distance  = sqrt(dx*dx + dy*dy);
-    var height = inHeight * gaussian_2D(pixel, center, 160.0, 2, vec2f(1,-0.8));;
-    height = pow(height, 4);
+    var height = inHeight * gaussian_2D(pixel, center, 210.0, 2, vec2f(1,0.8));;
+    height = pow(height, 6);
   
     pixelStateOut[pixelIndex] = height;
 }
@@ -130,5 +133,5 @@ fn perlin(pos: vec3u, scale: vec2f ) -> f32{
     // 
 
     
-    return 0.3+p*0.7;
+    return p;
 }

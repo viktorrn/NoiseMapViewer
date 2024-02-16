@@ -205,7 +205,7 @@ async function initWebGPU() {
         //caluclate delta time 
         let currentTime = new Date().getTime();
         
-        //updateNoiseMap();
+        updateNoiseMap();
       
         const encoder = device.createCommandEncoder();
 
