@@ -85,7 +85,7 @@ fn stepToLight(pos: vec3f, light: vec3f) -> f32 {
     
     let normal = calculateNormal(vec2u(u32(pos.x), u32(pos.y)));
     let lightVector = normalize(pos-light);
-    let dotProduct = 0.5 + 0.5 * dot(lightVector, normal);
+    let dotProduct = 0.6 + 0.4 * dot(lightVector, normal);
 
     for (var t = 0.0; t < 1; ) {
         p = start + dir * t;
@@ -110,48 +110,49 @@ fn rbg2ZeroOne(r: u32, g: u32, b: u32) -> vec3<f32> {
 
 fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
 
-    let oceanLevel = settings[1];
-    // Gradient color
-    if(height > 0.7) {
-        let c = clamp(height,0.8,0.95);
-        return vec3<f32>(c,c,c);
-    }
+    let noise1 = perlin(pixel, vec2f(16.0,16.0));
+    let noise2 = perlin(pixel, vec2f(32.0,32.0));
+    let noise3 = perlin(pixel, vec2f(4.0,4.0));
+
+    let inHeight = (noise1 + noise2 + 0.5*noise3)/3;
     
-    if(height > 0.4) {
+    let oceanLevel = settings[1] + 0.005 * inHeight;
+    
+    // Gradient color
+    var c = vec3<f32>(0.0, 0.0, 0.0);
+
+    if(height <= oceanLevel)
+    {
+        let diff = f32(clamp(oceanLevel-height, 0.0, 0.1));
+        let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
+        let scale = gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
+        c = mix(vec3<f32>(0.8863, 0.7922, 0.42), rbg2ZeroOne(35,137,218), clamp(300*diff,0,1));
+
+        return c * clamp(scale, 0.0, 1.0);
+    }
+
+    if(calculateSteepness(pixel.x, pixel.y) > 0.00005) {
         return vec3<f32>(0.8, 0.8, 0.8);
     }
 
-    if(height > 0.1 && calculateSteepness(pixel.x, pixel.y) > 0.00005) {
-        return vec3<f32>(0.8, 0.8, 0.8);
-    }
-
-    if(height > 0.03) {
-        return rbg2ZeroOne(21,114,65);
-    }
-
-    if(height > 0.01) {
-        return rbg2ZeroOne(117,184,85);
-    }
-
-    if(height > oceanLevel) {
+    if(height <= 0.01){
         return vec3<f32>(0.8863, 0.7922, 0.42);
     }
 
-    //let noise1 = perlin(pixel, vec2f(16.0,16.0));
-    //let noise2 = perlin(pixel, vec2f(32.0,32.0));
-    //let noise3 = perlin(pixel, vec2f(4.0,4.0));
+    if(height <= 0.03){
+        return rbg2ZeroOne(117,184,85);
+    }
 
-    //let inHeight = (noise1 + noise2 + 0.5*noise3)/3;
+    if(height <= 0.1){
+        return rbg2ZeroOne(21,114,65);
+    }
+    
+    if(height <= 0.7) {
+        return rbg2ZeroOne(21,114,65);
+    }
 
-    let diff = f32(clamp(oceanLevel-height, 0.0, 1.0));
-  
-
-    let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
-    let scale = gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
-    let c = mix(vec3<f32>(0.8863, 0.7922, 0.42), rbg2ZeroOne(35,137,218), 255*diff);
-
-
-    return c * clamp(scale, 0.0, 1.0);
+    let h = clamp(height,0.8,0.95);
+    return vec3<f32>(h,h,h);
 }
 
 fn calculateNormal(pixel: vec2u) -> vec3f {

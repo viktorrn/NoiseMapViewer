@@ -31,7 +31,7 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
 
         
 
-        inHeight = 0.5+ 0.2*(noise0 + noise1 + noise2 + noise3 + noise4);
+        inHeight = 0.4+ 0.2*(noise0 + noise1 + noise2 + noise3 + noise4);
     }
   
     
@@ -76,7 +76,7 @@ fn cubic(p: vec2f ) -> vec2f{
 }
 
 fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
-    let changeWithTime = true;
+    let changeWithTime = false;
     var p = (pos + vec2f(0.1,0.1))*scale;
     let x = dot(p,vec2f(123.4, 234.5));
     let y = dot(p,vec2f(234.5, 345.6));
