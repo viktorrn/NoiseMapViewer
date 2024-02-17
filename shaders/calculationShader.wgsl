@@ -1,5 +1,6 @@
 @group(0) @binding(0) var<uniform> grid: vec2f;
 @group(0) @binding(1) var<storage, read_write> pixelStateOut: array<f32>;
+// [0]: Time, [1]: TimeScale, [2]: Change Gradient, [3]: Light position x [4]: Light position y [5]: Light position z  [6]: Ocean level [7]: Normal varaiance  [8]: terrain tine
 @group(0) @binding(2) var<storage> settings: array<f32>;
 @group(0) @binding(3) var<storage> mapValues: array<f32>;
 
@@ -31,17 +32,18 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
 
         
 
-        inHeight = 0.4+ 0.2*(noise0 + noise1 + noise2 + noise3 + noise4);
+        inHeight = 0.4 + 0.3*(noise0 + noise1 + noise2 + noise3 + noise4);
     }
   
-    
+    let variance = settings[7];
+
     let dx = f32(pixel.x) - center.x;
     let dy = f32(pixel.y) - center.y;
     let distance  = sqrt(dx*dx + dy*dy);
-    var height = inHeight * gaussian_2D(pixel, center, 210.0, 2, vec2f(1,0.8));;
+    var height = inHeight * gaussian_2D(pixel, center, variance, 2, vec2f(1,0.8));;
     height = pow(height, 6);
   
-    pixelStateOut[pixelIndex] = height;
+    pixelStateOut[pixelIndex] = clamp(height,0.000001,8.0);
 }
 
 fn gaussian_2D(input: vec3<u32>, center: vec3<f32>, stddev: f32, amplitude: f32, scew: vec2f) -> f32 {
@@ -60,10 +62,6 @@ fn rand(local_seed: u32) -> f32 {
     return f32(x & 0xFFFFFF) / 0xFFFFFF;
 }
 
-fn lerp(t: f32, a: f32, b: f32) -> f32 {
-    // Linear interpolation
-    return a + t * (b - a);
-}
 
 /* Implementation based on this guys idea https://www.youtube.com/watch?v=7fd331zsie0*/
 
@@ -71,12 +69,9 @@ fn quintic(p: vec2f ) -> vec2f{
     return p * p * p * (p * (p * 6.0 - 15.0) + 10.0);
 }
 
-fn cubic(p: vec2f ) -> vec2f{
-    return p * p * (3.0 - 2.0 * p);
-}
 
 fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
-    let changeWithTime = false;
+    let changeWithTime = u32(settings[2]);
     var p = (pos + vec2f(0.1,0.1))*scale;
     let x = dot(p,vec2f(123.4, 234.5));
     let y = dot(p,vec2f(234.5, 345.6));
@@ -84,10 +79,10 @@ fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
     gradient = sin(gradient);
     gradient = gradient * 43758.5453;
 
-    let time = settings[0];
-
-    if(changeWithTime){
-        return sin(gradient + time*0.1);
+    let time = settings[8];
+    let timeScale = settings[1];
+    if(changeWithTime == 1){
+        return sin(gradient + time*0.1*timeScale);
     }
     return sin(gradient);
 }

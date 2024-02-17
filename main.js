@@ -140,8 +140,8 @@ async function initWebGPU() {
     device.queue.writeBuffer( pixelStateStorage,  0, pixelStateData);
 
     // uniform time buffer
-    // [0]: Time [1]: Ocean level [2]: Light x [3]: Light y [4]: Light z
-    const settingsArray = new Float32Array([0.0, 0.005, 512, 512, 0.3]);
+    // [0]: Time, [1]: TimeScale, [2]: Change Gradient, [3]: Light position x [4]: Light position y [5]: Light position z  [6]: Ocean level [7]: Normal varaiance [8]: terrain tine
+    const settingsArray = new Float32Array([0.0, 1.0, 0.0, 512, 512, 0.3, 0.005, 230, 0]);
     const settingsBuffer = device.createBuffer({
         label: "Settings",
         size: settingsArray.byteLength,
@@ -202,24 +202,60 @@ async function initWebGPU() {
     var timeStamp = new Date().getTime();
     function updateImage()
     {
+        if(document.getElementById('change-terrain').checked == 1)
+        {
+            settingsArray[2] = 1;
+            settingsArray[8] += 0.1;
+            updateNoiseMap();
+        }
+        else {
+            settingsArray[2] = 0;
+        }
+
         //caluclate delta time 
         let currentTime = new Date().getTime();
         
-        updateNoiseMap();
+        if(settingsArray[7] != Number(document.getElementById('terrain-spread').value))
+        {
+            settingsArray[2] = 1;
+            settingsArray[7] = Number(document.getElementById('terrain-spread').value);
+
+            device.queue.writeBuffer( settingsBuffer, 0, settingsArray);
+            updateNoiseMap();
+        }
       
         const encoder = device.createCommandEncoder();
 
         settingsArray[0] += 0.1;
-        
+        settingsArray[1] = Number(document.getElementById('time-scale').value);
+
         // let mouse = GetMousePosition();
+        // [0]: Time, [1]: TimeScale, [2]: Change Gradient, [3]: Light position x [4]: Light position y [5]: Light position z  [6]: Ocean level [7]: Normal varaiance [8]: terrain tine
         let rad = 450;
-        let dx = 512 + rad * Math.cos(iteration * 0.0025);
-        let dy = 512 + rad * Math.sin(iteration * 0.0025);
-        let dist = utils.distance([settingsArray[2],settingsArray[3]],[dx,dy]);
-        settingsArray[2] = utils.lerp1D(settingsArray[2],dx,utils.clamp(dist/100,0,1));
-        settingsArray[3] = utils.lerp1D(settingsArray[3],dy,utils.clamp(dist/100,0,1));
-        settingsArray[4] = 0.3;
         
+        let dx = 512 + rad * Math.cos(iteration * 0.001);
+        let dy = 512 + rad * Math.sin(iteration * 0.001);
+
+        if(mouseInside && document.getElementById('light-follow-mouse').checked == 1)
+        {
+            dx = mousePosition[0];
+            dy = mousePosition[1];
+            settingsArray[3] = dx;
+            settingsArray[4] = dy;
+        } else {
+            let dist = utils.distance([settingsArray[3],settingsArray[4]],[dx,dy]);
+        
+            settingsArray[3] = utils.lerp1D(settingsArray[3],dx,utils.clamp(10/dist,0,1));
+            settingsArray[4] = utils.lerp1D(settingsArray[4],dy,utils.clamp(10/dist,0,1));
+        }
+
+   
+       
+        settingsArray[5] = Number(document.getElementById('light-height').value);
+        
+        settingsArray[6] = Number(document.getElementById('ocean-level').value);
+    
+
         //oceanData[0] = Number(document.getElementById('ocean-level').value);
         device.queue.writeBuffer( settingsBuffer, 0, settingsArray);
         // Create the command encoder
@@ -248,7 +284,7 @@ async function initWebGPU() {
         let deltaTime = currentTime - timeStamp;
         timeStamp = currentTime;
         
-        document.getElementById('fps').innerHTML = deltaTime + "ms";
+        document.getElementById('fps').innerHTML = "fps: " + Math.floor(1000/deltaTime);
     }
     window.requestAnimationFrame(updateImage);
     
@@ -256,8 +292,26 @@ async function initWebGPU() {
 
 function GetMousePosition(event) {
     var rect = canvas.getBoundingClientRect();
-    return [event.clientX - rect.left, event.clientY - rect.top];
+    return [event.clientX - rect.left,  rect.height + rect.top - event.clientY  ];
 }
 
+let mouseInside = false;
+let mousePosition = [0,0];
+
+canvas.onmousemove = (e)=>{
+    try {
+        mousePosition = GetMousePosition(e);
+    } catch (error) {
+        
+    }
+}
+
+canvas.onmouseenter = ()=>{
+    mouseInside = true;  
+}
+
+canvas.onmouseleave = ()=>{
+    mouseInside = false; 
+}
 // Initialize WebGPU
 initWebGPU();

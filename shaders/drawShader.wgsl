@@ -5,10 +5,11 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> grid: vec2f;
 @group(0) @binding(1) var<storage, read_write> pixelState: array<f32>;
-// [0]: Time, [1]: Ocean level, [2]: Light position x [3]: Light position y [4]: Light position z [5]: Change Gradient
+// [0]: Time, [1]: TimeScale, [2]: Change Gradient, [3]: Light position x [4]: Light position y [5]: Light position z  [6]: Ocean level [7]: Normal varaiance 
 @group(0) @binding(2) var<storage> settings: array<f32>;
 @group(0) @binding(3) var<storage> mapValues: array<f32>;
 
+const PI = 3.14159265359;
 
 @vertex
 fn vertexMain(@location(0) position: vec2f) -> VertexOutput {
@@ -26,18 +27,18 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     let i = pixel.x + pixel.y * u32(grid.x);
     let show_grad = false;
     let height = pixelState[i];
-    let lightPosition = vec3f(settings[2], settings[3], settings[4]);
 
+    let lightPosition = vec3f(settings[3], settings[4], settings[5]);
     let pixelPos = vec3f(f32(pixel.x), f32(pixel.y), f32(height));
     let value = colorGrad(height, pixel);
-    let shadow = stepToLight(pixelPos, lightPosition);
+    
     
     // Get the cell state
-    var red = value.x * shadow;
-    var green = value.y * shadow ;
-    var blue = value.z * shadow;
+    var red = value.x;;
+    var green = value.y;
+    var blue = value.z;
 
-    if(distance(pixelPos.xy, lightPosition.xy) < 10) {
+    if(distance(pixelPos.xy, lightPosition.xy) < clamp(4*settings[5],1,30)) {
         red = 255.0;
         green = 255.0;
         blue = 255.0;
@@ -59,107 +60,124 @@ fn lerp(a: vec3<f32>, b: vec3<f32>, t: f32) -> vec3<f32> {
 
 fn calculateSteepness(x: u32, y: u32) -> f32 {
     
-    let h = f32(pixelState[indexMap(x, y)]);
-    let p0 = f32(pixelState[indexMap(x+1, y)]);
-    let p1 = f32(pixelState[indexMap(x, y+1)]);
-    let p2 = f32(pixelState[indexMap(x-1, y)]);
-    let p3 = f32(pixelState[indexMap(x, y-1)]);
+    let normal = calculateNormal(vec2u(x, y));
+    let groundVector = normalize(vec3f(normal.x, normal.y, 0.0));
 
-    let dx1 = h-p0;
-    let dx2 = h-p2;
-    let dy1 = h-p1;
-    let dy2 = h-p3;
-    let steepness = (dx1+dx2+dy1+dy2)/4;
-    
-    return steepness;
+    let angle = dot(groundVector, normal)/(length(groundVector)*length(normal));
+
+    let clamped = clamp(angle, 0.0, PI/2.0);
+    return clamped;
 }
 
-fn stepToLight(pos: vec3f, light: vec3f) -> f32 {
-    
+fn stepToLight(pos: vec3f) -> f32 {
+    let light = vec3f(settings[3], settings[4], settings[5]);
     // Step to light
-    let dir: vec3f = light - pos;
-    let stepSize = 0.005;
+    let stepSize = 0.001;
     var p: vec3f = pos.xyz;
-    let start = pos.xyz;
     var h_prev = pixelState[indexMap(u32(p.x), u32(p.y))];
-    
-    let normal = calculateNormal(vec2u(u32(pos.x), u32(pos.y)));
-    let lightVector = normalize(pos-light);
-    let dotProduct = 0.6 + 0.4 * dot(lightVector, normal);
+
+
+    let start = pos.xyz;
 
     for (var t = 0.0; t < 1; ) {
-        p = start + dir * t;
+        p = lerp(light,start,t);
         
-        if(pixelState[indexMap(u32(p.x), u32(p.y))] > 10.0)
-        {
-            return 1.0 * dotProduct;
-        }
-
-        if ( p.z < pixelState[indexMap(u32(p.x), u32(p.y))]) {
-            return 0.5 * dotProduct;
+        if ( p.z <= pixelState[indexMap(u32(floor(p.x+0.5)), u32(floor(p.y+0.5)))]) {
+            return 0.5;
         } 
         t += stepSize;
     }
     
-    return 1.0 * dotProduct;
+    return 1.0;
 }
 
 fn rbg2ZeroOne(r: u32, g: u32, b: u32) -> vec3<f32> {
     return vec3f(f32(r) / 255.0, f32(g) / 255.0, f32(b) / 255.0);
 }
 
+
+
 fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
+    // elements
+    let waterColor= rbg2ZeroOne(68,187,255);
+    let sandColor = rbg2ZeroOne(240,237,164);
+    let grassColor = rbg2ZeroOne(128, 177, 69);
+    let forestColor = rbg2ZeroOne(68, 119, 65);
+    let mountainColor = rbg2ZeroOne(21,114,65);
+    let rockColor = rbg2ZeroOne(200, 200, 200);
+
+
+    // For light
+    let light = vec3f(settings[3], settings[4], settings[5]);
+    let pos = vec3f(f32(pixel.x), f32(pixel.y), height);
+    
+    let normal = calculateNormal(vec2u(u32(pixel.x), u32(pixel.y)));
+    let lightVector = normalize(pos-light);
+
+    
+    let dotProduct = dot(lightVector, normal);
+
+    // Gradient colors
+   
+    var steepNess = calculateSteepness(pixel.x, pixel.y);
 
     let noise1 = perlin(pixel, vec2f(16.0,16.0));
     let noise2 = perlin(pixel, vec2f(32.0,32.0));
     let noise3 = perlin(pixel, vec2f(4.0,4.0));
-
     let inHeight = (noise1 + noise2 + 0.5*noise3)/3;
-    
-    let oceanLevel = settings[1] + 0.005 * inHeight;
-    
-    // Gradient color
-    var c = vec3<f32>(0.0, 0.0, 0.0);
 
+    var oceanLevel = settings[6] + 0.002 * inHeight;
+    if(settings[6] == 0)
+    {
+        oceanLevel = settings[6];
+    } 
+
+    // Ocean
     if(height <= oceanLevel)
     {
-        let diff = f32(clamp(oceanLevel-height, 0.0, 0.1));
+        let shadow = stepToLight(vec3f(f32(pixel.x), f32(pixel.y), oceanLevel));
+        var c = vec3<f32>(0.0, 0.0, 0.0);
+        
+
+        let diff = f32(clamp(oceanLevel-height, 0, 0.1));
         let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
         let scale = gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
-        c = mix(vec3<f32>(0.8863, 0.7922, 0.42), rbg2ZeroOne(35,137,218), clamp(300*diff,0,1));
+        
+        c = mix(sandColor, waterColor, clamp(300*diff,0,1));
 
-        return c * clamp(scale, 0.0, 1.0);
-    }
-
-    if(calculateSteepness(pixel.x, pixel.y) > 0.00005) {
-        return vec3<f32>(0.8, 0.8, 0.8);
-    }
-
-    if(height <= 0.01){
-        return vec3<f32>(0.8863, 0.7922, 0.42);
-    }
-
-    if(height <= 0.03){
-        return rbg2ZeroOne(117,184,85);
-    }
-
-    if(height <= 0.1){
-        return rbg2ZeroOne(21,114,65);
+        return c * clamp(scale, 0.0, 1.0) * shadow;
     }
     
-    if(height <= 0.7) {
-        return rbg2ZeroOne(21,114,65);
-    }
+    let shade = stepToLight(vec3f(f32(pixel.x), f32(pixel.y), height));
+    if(height < 0.7) {
+        if(height <= 0.015){
+            return sandColor * (0.8 + 0.2*dotProduct)* shade;
+        }
 
-    let h = clamp(height,0.8,0.95);
-    return vec3<f32>(h,h,h);
+        if(steepNess > 2*PI/7.0 ) {
+            return rockColor * (0.8 + 0.2*dotProduct)* shade;
+        }
+
+        if(steepNess > PI/7.0 ) {
+            return forestColor * (0.7 + 0.4*dotProduct)* shade;
+        }
+
+        if(height <0.3)
+        {
+
+            return grassColor* (0.9 + 0.1*dotProduct)* shade;
+        }
+        return forestColor* (0.7 + 0.4*dotProduct)* shade; 
+    }
+    
+    return mix(rockColor,vec3f(1.0,1.0,1.0),clamp(0.7-height,0,1)) * (0.8 + 0.2*dotProduct)* shade;
 }
 
 fn calculateNormal(pixel: vec2u) -> vec3f {
-    let v1 = vec3f(1,0, 20 * (pixelState[indexMap(pixel.x, pixel.y)] - pixelState[indexMap(pixel.x+1,pixel.y)]));
-    let v2 = vec3f(0,1, 20 * (pixelState[indexMap(pixel.x, pixel.y)] - pixelState[indexMap(pixel.x,pixel.y+1)]) );
+    let v1 = vec3f(1,0, 200 * (pixelState[indexMap(pixel.x, pixel.y)] - pixelState[indexMap(pixel.x+1,pixel.y)]));
+    let v2 = vec3f(0,1, 200 * (pixelState[indexMap(pixel.x, pixel.y)] - pixelState[indexMap(pixel.x,pixel.y+1)]) );
 
-    return cross(normalize(v1),normalize(v2));
+    return normalize(cross(normalize(v1),normalize(v2)));
 }
 
 fn gaussian_2D(input: vec2u, center: vec3<f32>, stddev: f32, amplitude: f32, scew: vec2f) -> f32 {
@@ -179,7 +197,7 @@ fn cubic(p: vec2f ) -> vec2f{
 }
 
 fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
-    let changeWithsettings = true;
+  
     var p = (pos + vec2f(0.1,0.1))*scale;
     let x = dot(p,vec2f(123.4, 234.5));
     let y = dot(p,vec2f(234.5, 345.6));
@@ -188,11 +206,10 @@ fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
     gradient = gradient * 43758.5453;
 
     let time = settings[0];
+    let timeScale = settings[1];
 
-    if(changeWithsettings){
-        return sin(gradient + time*0.1);
-    }
-    return sin(gradient);
+    
+    return sin(gradient + time*0.2*timeScale);
 }
 
 fn perlin(pos: vec2u, scale: vec2f ) -> f32{
