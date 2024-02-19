@@ -154,13 +154,13 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
         
        // c = mix(sandColor, waterColor, clamp(300*diff,0,1));
         let borderShadowScale = 1.2*gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
-        c = lerp(c, sandColor, clamp(exp(-diff*500),0.0,0.5));
         c+= wave/8;
+        c = lerp(c, sandColor, clamp(exp(-diff*400),0.0,0.5));
         return c * clamp(borderShadowScale, 0.0, 1.0) * shadow;
     }
     
     let shade = stepToLight(vec3f(f32(pixel.x), f32(pixel.y), height));
-    if(height < 0.7) {
+    if(height < 0.5) {
         if(height <= 0.015){
             return sandColor * (0.8 + 0.2*dotProduct)* shade;
         }
@@ -181,7 +181,7 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
         return forestColor* (0.7 + 0.4*dotProduct)* shade; 
     }
     
-    return mix(rockColor,vec3f(1.0,1.0,1.0),clamp(0.7-height,0,1)) * (0.8 + 0.2*dotProduct)* shade;
+    return mix(rockColor,vec3f(1.0,1.0,1.0),clamp(0.5-height,0,1)) * (0.8 + 0.2*dotProduct)* shade;
 }
 
 fn calculateNormal(pixel: vec2u) -> vec3f {

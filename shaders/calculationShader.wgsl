@@ -32,7 +32,7 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
 
         
 
-        inHeight = 0.4 + 0.3*(noise0 + noise1 + noise2 + noise3 + noise4);
+        inHeight = 0.6 + 0.4*(noise0 + noise1 + noise2 + noise3 + noise4*2);
     }
   
     let variance = settings[7];
@@ -40,7 +40,7 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3<u32>) {
     let dx = f32(pixel.x) - center.x;
     let dy = f32(pixel.y) - center.y;
     let distance  = sqrt(dx*dx + dy*dy);
-    var height = inHeight * gaussian_2D(pixel, center, variance, 2, vec2f(1,0.8));;
+    var height = inHeight * gaussian_2D(pixel, center, variance, 1, vec2f(0.7,1));;
     height = pow(height, 6);
   
     pixelStateOut[pixelIndex] = clamp(height,0.000001,8.0);
@@ -82,7 +82,7 @@ fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
     let time = settings[8];
     let timeScale = settings[1];
     if(changeWithTime == 1){
-        return sin(gradient + time*0.1*timeScale);
+        return sin(gradient + 1+ time*0.1*timeScale);
     }
     return sin(gradient);
 }
