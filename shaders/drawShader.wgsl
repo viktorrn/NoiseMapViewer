@@ -38,7 +38,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     var green = value.y;
     var blue = value.z;
 
-    if(distance(pixelPos.xy, lightPosition.xy) < clamp(4*settings[5],1,30)) {
+    if(distance(pixelPos.xy, lightPosition.xy) < clamp(2*settings[5],4,30)) {
         red = 255.0;
         green = 255.0;
         blue = 255.0;
@@ -58,6 +58,11 @@ fn lerp(a: vec3<f32>, b: vec3<f32>, t: f32) -> vec3<f32> {
     return a * (1.0 - t) + b * t;
 }
 
+fn smoothstep(start:f32, end:f32, t: f32) -> f32 {
+    let x = clamp((t - start) / (end - start), 0.0, 1.0);
+    return x * x * (3.0 - 2.0 * x);
+}
+
 fn calculateSteepness(x: u32, y: u32) -> f32 {
     
     let normal = calculateNormal(vec2u(x, y));
@@ -72,7 +77,7 @@ fn calculateSteepness(x: u32, y: u32) -> f32 {
 fn stepToLight(pos: vec3f) -> f32 {
     let light = vec3f(settings[3], settings[4], settings[5]);
     // Step to light
-    let stepSize = 0.001;
+    let stepSize = 0.005;
     var p: vec3f = pos.xyz;
     var h_prev = pixelState[indexMap(u32(p.x), u32(p.y))];
 
@@ -83,7 +88,7 @@ fn stepToLight(pos: vec3f) -> f32 {
         p = lerp(light,start,t);
         
         if ( p.z <= pixelState[indexMap(u32(floor(p.x+0.5)), u32(floor(p.y+0.5)))]) {
-            return 0.5;
+            return 0.7;
         } 
         t += stepSize;
     }
@@ -114,7 +119,7 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
     let normal = calculateNormal(vec2u(u32(pixel.x), u32(pixel.y)));
     let lightVector = normalize(pos-light);
 
-    
+    let time = settings[0];
     let dotProduct = dot(lightVector, normal);
 
     // Gradient colors
@@ -126,7 +131,9 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
     let noise3 = perlin(pixel, vec2f(4.0,4.0));
     let inHeight = (noise1 + noise2 + 0.5*noise3)/3;
 
-    var oceanLevel = settings[6] + 0.002 * inHeight;
+    var oceanLevel = settings[6]+ 0.005 * inHeight;
+    
+    
     if(settings[6] == 0)
     {
         oceanLevel = settings[6];
@@ -135,17 +142,21 @@ fn colorGrad(height: f32, pixel: vec2u ) -> vec3<f32> {
     // Ocean
     if(height <= oceanLevel)
     {
-        let shadow = stepToLight(vec3f(f32(pixel.x), f32(pixel.y), oceanLevel));
-        var c = vec3<f32>(0.0, 0.0, 0.0);
+        let shadow = stepToLight(vec3f(f32(pixel.x), f32(pixel.y), height));
+        var c = waterColor;
         
-
-        let diff = f32(clamp(oceanLevel-height, 0, 0.1));
+        let diff = f32(clamp(oceanLevel-height, 0, 1));
         let center: vec3f = vec3f(grid.x/2, grid.y/2, 0.0);
-        let scale = gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
         
-        c = mix(sandColor, waterColor, clamp(300*diff,0,1));
+        var wave = (1 - smoothstep(0.0,0.005,diff));
+        wave *= (sin(cos(time*0.05)*2+1000*diff))*0.75;
 
-        return c * clamp(scale, 0.0, 1.0) * shadow;
+        
+       // c = mix(sandColor, waterColor, clamp(300*diff,0,1));
+        let borderShadowScale = 1.2*gaussian_2D(pixel, center, 360.0, 1.0, vec2f(1.0, 1.0));
+        c = lerp(c, sandColor, clamp(exp(-diff*500),0.0,0.5));
+        c+= wave/8;
+        return c * clamp(borderShadowScale, 0.0, 1.0) * shadow;
     }
     
     let shade = stepToLight(vec3f(f32(pixel.x), f32(pixel.y), height));

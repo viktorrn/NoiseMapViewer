@@ -73,11 +73,11 @@ fn quintic(p: vec2f ) -> vec2f{
 fn randomGradiant(pos: vec2f, scale: vec2f ) -> vec2f{
     let changeWithTime = u32(settings[2]);
     var p = (pos + vec2f(0.1,0.1))*scale;
-    let x = dot(p,vec2f(123.4, 234.5));
-    let y = dot(p,vec2f(234.5, 345.6));
+    let x = dot(p,vec2f(443.4, 234.5));
+    let y = dot(p,vec2f(234.5, 147.6));
     var gradient = vec2f(x,y);
     gradient = sin(gradient);
-    gradient = gradient * 43758.5453;
+    gradient = gradient * 43759.5453;
 
     let time = settings[8];
     let timeScale = settings[1];

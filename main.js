@@ -227,6 +227,7 @@ async function initWebGPU() {
         const encoder = device.createCommandEncoder();
 
         settingsArray[0] += 0.1;
+        
         settingsArray[1] = Number(document.getElementById('time-scale').value);
 
         // let mouse = GetMousePosition();
@@ -253,7 +254,7 @@ async function initWebGPU() {
        
         settingsArray[5] = Number(document.getElementById('light-height').value);
         
-        settingsArray[6] = Number(document.getElementById('ocean-level').value);
+
     
 
         //oceanData[0] = Number(document.getElementById('ocean-level').value);
